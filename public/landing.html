@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SkillMap AI — Know exactly what to learn next.</title>
+  <meta name="description" content="AI-powered career intelligence. Upload your resume and get a personalized roadmap to your dream tech role in seconds.">
+  
+  <!-- CDNs -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+
+  <style>
+    /* ============================================================
+       DESIGN SYSTEM & GLOBAL STYLES
+       ============================================================ */
+    :root {
+      --bg-primary: #050508;
+      --bg-secondary: #0d0d12;
+      --bg-card: rgba(18, 15, 23, 0.7);
+      --bg-card-hover: rgba(25, 20, 35, 0.85);
+      --bg-sidebar: rgba(13, 18, 32, 0.85);
+      --accent-purple: #7c3aed;
+      --accent-cyan: #06b6d4;
+      --accent-gradient: linear-gradient(135deg, #ff5c7a, #8a5cff, #00ffd1);
+      --text-primary: #ffffff;
+      --text-secondary: #94a3b8;
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --radius-lg: 24px;
+      --radius-md: 16px;
+      --transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      
+      /* PillNav Vars */
+      --base: #ffffff;
+      --pill-bg: #ffffff;
+      --hover-text: #050508;
+      --pill-text: #ffffff;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; background-color: #050508; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: transparent;
+      color: var(--text-primary);
+      line-height: 1.6;
+      overflow-x: hidden;
+      padding-bottom: 120px;
+    }
+
+    /* --- Background Shader --- */
+    .color-bends-container {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: -1;
+      pointer-events: none;
+      background: transparent !important;
+    }
+    #landing-view, #app-view, .container, section, footer { background-color: transparent !important; }
+
+    /* --- Layout --- */
+    .container { max-width: 1300px; margin: 0 auto; padding: 0 40px; }
+    section { padding: 160px 0; }
+    
+    #landing-view { display: block; }
+    #app-view { display: none; }
+    body.app-mode #landing-view { display: none; }
+    body.app-mode #app-view { display: flex; }
+
+    /* --- ADVANCED PILL NAV --- */
+    .pill-nav-container {
+      position: fixed;
+      top: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      width: auto;
+    }
+
+    .pill-nav {
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 8px 12px;
+      border-radius: 9999px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .pill-logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      background: var(--accent-gradient);
+      border-radius: 50%;
+      text-decoration: none;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .pill-logo img { width: 24px; height: 24px; pointer-events: none; }
+
+    .pill-nav-items { display: flex; align-items: center; }
+    .pill-list { display: flex; list-style: none; gap: 4px; padding: 0; margin: 0; }
+
+    .pill {
+      position: relative;
+      display: block;
+      padding: 10px 24px;
+      border-radius: 9999px;
+      text-decoration: none;
+      color: var(--text-secondary);
+      font-weight: 600;
+      font-size: 0.95rem;
+      overflow: hidden;
+      transition: color 0.3s ease;
+    }
+
+    .hover-circle {
+      position: absolute;
+      background: var(--pill-bg);
+      border-radius: 50%;
+      z-index: 0;
+      pointer-events: none;
+      left: 50%;
+      transform: translateX(-50%) scale(0);
+      opacity: 0;
+    }
+
+    .label-stack {
+      position: relative;
+      z-index: 1;
+      display: block;
+      height: 1.2em;
+      overflow: hidden;
+    }
+
+    .pill-label, .pill-label-hover {
+      display: block;
+      transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    .pill-label-hover {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      color: var(--hover-text);
+      opacity: 0;
+    }
+
+    .pill.active .hover-circle { transform: translateX(-50%) scale(1); opacity: 1; }
+    .pill.active .pill-label { transform: translateY(-30px); opacity: 0; }
+    .pill.active .pill-label-hover { transform: translateY(0); opacity: 1; }
+
+    /* --- Buttons --- */
+    .btn { display: inline-flex; align-items: center; justify-content: center; padding: 16px 32px; border-radius: 9999px; font-weight: 700; cursor: pointer; transition: var(--transition); text-decoration: none; border: 1px solid transparent; font-size: 1rem; }
+    .btn-primary { background: var(--accent-purple); color: white; box-shadow: 0 0 30px rgba(132, 0, 255, 0.2); }
+    .btn-primary:hover { background: #a855f7; transform: translateY(-3px); }
+    .btn-secondary { background: rgba(255,255,255,0.05); color: white; border-color: rgba(255,255,255,0.1); backdrop-filter: blur(10px); }
+
+    /* --- Cards --- */
+    .card { background: var(--bg-card); backdrop-filter: blur(20px); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 56px; transition: var(--transition); position: relative; overflow: hidden; }
+    .card:hover { border-color: rgba(124, 58, 237, 0.3); transform: translateY(-8px); background: var(--bg-card-hover); }
+
+    /* --- Pricing --- */
+    .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 40px; margin-top: 80px; }
+    .price-card { text-align: center; display: flex; flex-direction: column; align-items: center; }
+    .price-card ul { text-align: left; margin: 0 auto 40px auto; display: inline-block; width: fit-content; }
+    .price-card.featured { border: 2px solid var(--accent-purple); scale: 1.05; z-index: 2; box-shadow: 0 30px 60px rgba(124, 58, 237, 0.15); }
+
+    /* --- Inputs --- */
+    textarea { width: 100%; background: rgba(0,0,0,0.4); border: 1px solid var(--border-subtle); border-radius: 16px; padding: 20px; color: white; font-family: inherit; font-size: 1rem; outline: none; transition: var(--transition); }
+    textarea:focus { border-color: var(--accent-purple); background: rgba(0,0,0,0.6); }
+
+    /* --- CardSwap --- */
+    .card-swap-container { 
+      position: relative;
+      width: 700px; 
+      height: 480px; 
+      perspective: 900px;
+      overflow: visible;
+      z-index: 10;
+      margin: 0 auto;
+    }
+    .swap-card { 
+      position: absolute; 
+      top: 50%;
+      left: 50%;
+      width: 700px;
+      height: 480px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(20px);
+      transform-style: preserve-3d;
+      will-change: transform;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      opacity: 0;
+    }
+    @media (max-width: 768px) {
+      .card-swap-container { transform: scale(0.75) translate(25%, 25%); }
+    }
+    @media (max-width: 480px) {
+      .card-swap-container { transform: scale(0.55) translate(25%, 25%); }
+    }
+    h1 { font-size: 4rem; font-weight: 800; letter-spacing: -2px; line-height: 1.1; margin-bottom: 24px; }
+    h2 { font-size: 2.5rem; font-weight: 700; letter-spacing: -1px; margin-bottom: 16px; }
+    p { color: var(--text-secondary); font-size: 1.125rem; }
+    .badge { display: inline-block; padding: 6px 16px; border-radius: 9999px; background: rgba(124, 58, 237, 0.1); color: #a855f7; font-weight: 700; font-size: 0.8rem; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 1px; }
+
+    /* --- Social Proof --- */
+    .logos { display: flex; justify-content: center; gap: 60px; opacity: 0.5; grayscale: 1; filter: brightness(2); margin-top: 40px; }
+    .logos span { font-weight: 800; font-size: 1.2rem; }
+
+    /* --- FAQ --- */
+    .faq-item { border-bottom: 1px solid var(--border-subtle); padding: 32px 0; cursor: pointer; transition: border-color 0.3s ease; }
+    .faq-item:hover { border-color: rgba(255,255,255,0.2); }
+    .faq-item h4 { display: flex; justify-content: space-between; align-items: center; font-size: 1.35rem; font-weight: 600; }
+    .faq-item h4 span { display: inline-block; transition: color 0.3s ease; }
+    .faq-answer { height: 0; overflow: hidden; padding-top: 0; color: var(--text-secondary); line-height: 1.6; font-size: 1.1rem; max-width: 800px; opacity: 0; }
+
+    /* --- Footer --- */
+    footer { border-top: 1px solid var(--border-subtle); padding: 160px 0 200px 0; margin-top: 400px; }
+
+    /* --- Mobile --- */
+    .mobile-only { display: none; }
+    @media (max-width: 768px) {
+      .desktop-only { display: none; }
+      .mobile-only { display: block; }
+      .pill-nav { gap: 8px; }
+      h1 { font-size: 2.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="color-bends-container"></div>
+
+  <!-- ============================================================
+       LANDING PAGE VIEW
+       ============================================================ -->
+  <div id="landing-view">
+    
+    <div class="pill-nav-container">
+      <nav class="pill-nav">
+        <a href="#" class="pill-logo">
+          <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='white' viewBox='0 0 24 24'%3E%3Cpath d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5'/%3E%3C/svg%3E" alt="Logo">
+        </a>
+        <div class="pill-nav-items desktop-only">
+          <ul class="pill-list">
+            <li>
+              <a href="#home" class="pill active" data-index="0">
+                <span class="hover-circle"></span>
+                <span class="label-stack">
+                  <span class="pill-label">Home</span>
+                  <span class="pill-label-hover">Home</span>
+                </span>
+              </a>
+            </li>
+            <li>
+              <a href="#demo" class="pill" data-index="1">
+                <span class="hover-circle"></span>
+                <span class="label-stack">
+                  <span class="pill-label">Product</span>
+                  <span class="pill-label-hover">Product</span>
+                </span>
+              </a>
+            </li>
+            <li>
+              <a href="#pricing" class="pill" data-index="2">
+                <span class="hover-circle"></span>
+                <span class="label-stack">
+                  <span class="pill-label">Pricing</span>
+                  <span class="pill-label-hover">Pricing</span>
+                </span>
+              </a>
+            </li>
+            <li>
+              <a href="#faq" class="pill" data-index="3">
+                <span class="hover-circle"></span>
+                <span class="label-stack">
+                  <span class="pill-label">FAQ</span>
+                  <span class="pill-label-hover">FAQ</span>
+                </span>
+              </a>
+            </li>
+          </ul>
+        </div>
+        <button onclick="launchApp()" class="btn btn-primary" style="padding: 10px 24px; font-size: 0.9rem; border-radius: 9999px;">Try It Free</button>
+      </nav>
+    </div>
+
+    <!-- Hero Section -->
+    <section id="home" class="container" style="display: grid; grid-template-columns: 1fr 1fr; align-items: center; min-height: 100vh; padding-top: 100px; gap: 100px;">
+      <div style="z-index: 1;">
+        <div class="badge">ML-Powered Career Intelligence</div>
+        <h1>Know exactly what to learn next.</h1>
+        <p style="margin-bottom: 48px; font-size: 1.25rem;">Upload your resume and get a personalized roadmap to your dream tech role in seconds. Join 50k+ students mapping their futures.</p>
+        <div style="display: flex; gap: 20px;">
+          <button onclick="launchApp()" class="btn btn-primary">Try It Free</button>
+          <button class="btn btn-secondary">See Demo</button>
+        </div>
+        <div class="logos">
+          <span>GOOGLE</span> <span>META</span> <span>STRIPE</span> <span>OPENAI</span>
+        </div>
+      </div>
+      <div style="position: relative; display: flex; justify-content: center; align-items: center;">
+        <div class="card-swap-container">
+          <!-- Card 1: Frontend -->
+          <div class="card swap-card" data-index="0" style="padding: 32px; border-radius: 32px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+              <div style="font-weight: 800;">Target Role</div>
+              <div style="color: var(--accent-cyan); font-weight: 800;">84% Match</div>
+            </div>
+            <h2 style="font-size: 1.5rem;">Frontend Developer</h2>
+            <div style="height: 12px; background: rgba(255,255,255,0.05); border-radius: 6px; margin-top: 20px; overflow: hidden;">
+              <div style="width: 84%; height: 100%; background: var(--accent-gradient);"></div>
+            </div>
+            <div style="margin-top: 32px; display: grid; gap: 12px;">
+              <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 12px; font-size: 0.9rem;">✅ React & TypeScript</div>
+              <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 12px; font-size: 0.9rem; color: #f87171;">❌ Unit Testing (Jest)</div>
+            </div>
+          </div>
+
+          <!-- Card 2: Backend -->
+          <div class="card swap-card" data-index="1" style="padding: 32px; border-radius: 32px; opacity: 0;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+              <div style="font-weight: 800;">Skill Gap</div>
+              <div style="color: #f59e0b; font-weight: 800;">42% Match</div>
+            </div>
+            <h2 style="font-size: 1.5rem;">Backend Systems</h2>
+            <p style="font-size: 0.9rem; margin-top: 10px;">Next logical step for Fullstack transition.</p>
+            <div style="margin-top: 32px; display: grid; gap: 12px;">
+              <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 12px; font-size: 0.9rem; color: #60a5fa;">💡 Learning: Node.js Architecture</div>
+              <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 12px; font-size: 0.9rem; color: #60a5fa;">💡 Learning: PostgreSQL Deep Dive</div>
+            </div>
+          </div>
+
+          <!-- Card 3: Projection -->
+          <div class="card swap-card" data-index="2" style="padding: 32px; border-radius: 32px; opacity: 0;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+              <div style="font-weight: 800;">Career Path</div>
+              <div style="color: #10b981; font-weight: 800;">Ready by 2027</div>
+            </div>
+            <h2 style="font-size: 1.5rem;">Senior Fullstack Lead</h2>
+            <div style="margin-top: 20px; font-size: 0.9rem; color: var(--text-secondary);">
+              Projected 14-month path based on your current learning velocity and market trends.
+            </div>
+            <div style="margin-top: 32px; height: 100px; display: flex; align-items: flex-end; gap: 8px;">
+              <div style="flex: 1; height: 40%; background: var(--accent-purple); border-radius: 4px;"></div>
+              <div style="flex: 1; height: 65%; background: var(--accent-purple); border-radius: 4px;"></div>
+              <div style="flex: 1; height: 90%; background: var(--accent-cyan); border-radius: 4px;"></div>
+              <div style="flex: 1; height: 100%; background: var(--accent-cyan); border-radius: 4px; box-shadow: 0 0 20px rgba(6, 182, 212, 0.4);"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Before/After Section -->
+    <section id="demo">
+      <div class="container">
+        <div style="text-align: center; max-width: 700px; margin: 0 auto;">
+          <div class="badge">The Efficiency Gap</div>
+          <h2>Stop wasting time on tutorial hell.</h2>
+          <p>Traditional learning is linear and slow. SkillMap is multidimensional and adaptive.</p>
+        </div>
+        <div class="comparison-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 60px;">
+          <div class="card" style="border-left: 4px solid #ef4444;">
+            <h3 style="margin-bottom: 20px;">Without SkillMap</h3>
+            <ul style="list-style: none; display: grid; gap: 16px; color: var(--text-secondary);">
+              <li>❌ Watching 40-hour generic courses</li>
+              <li>❌ Learning tools you won't use at work</li>
+              <li>❌ Applying to roles you aren't ready for</li>
+              <li>❌ 6-12 months to job readiness</li>
+            </ul>
+          </div>
+          <div class="card" style="border-left: 4px solid #22c55e;">
+            <h3 style="margin-bottom: 20px;">With SkillMap</h3>
+            <ul style="list-style: none; display: grid; gap: 16px;">
+              <li>✅ Targeted gap-filling lessons</li>
+              <li>✅ Role-specific portfolio projects</li>
+              <li>✅ Real-time career match monitoring</li>
+              <li>✅ 2-3 months to job readiness</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section id="pricing" class="container">
+      <div style="text-align: center; margin-bottom: 80px;">
+        <h2>Simple, transparent pricing.</h2>
+        <p>Invest in your career. Pay for what you need.</p>
+      </div>
+      <div class="pricing-grid">
+        <div class="card price-card">
+          <div class="badge">Free</div>
+          <div style="font-size: 3rem; font-weight: 800; margin: 20px 0;">$0</div>
+          <p style="margin-bottom: 32px;">Perfect for exploring roles.</p>
+          <ul style="list-style: none; display: grid; gap: 12px; margin-bottom: 40px; font-size: 0.9rem;">
+            <li>✨ 3 Career Match Reports</li>
+            <li>✨ Basic Skill Extraction</li>
+            <li>✨ Community Support</li>
+          </ul>
+          <button onclick="launchApp()" class="btn btn-secondary" style="width: 100%;">Get Started</button>
+        </div>
+        <div class="card price-card featured">
+          <div class="badge">Pro Plan</div>
+          <div style="font-size: 3rem; font-weight: 800; margin: 20px 0;">$19<span style="font-size: 1rem; opacity: 0.5;">/mo</span></div>
+          <p style="margin-bottom: 32px;">For serious career accelerators.</p>
+          <ul style="list-style: none; display: grid; gap: 12px; margin-bottom: 40px; font-size: 0.9rem;">
+            <li>✨ Unlimited Career Reports</li>
+            <li>✨ Deep JD Matching & Gap Analysis</li>
+            <li>✨ Weekly Learning Roadmap Updates</li>
+            <li>✨ AI Resume Optimizer</li>
+          </ul>
+          <button onclick="launchApp()" class="btn btn-primary" style="width: 100%;">Go Pro Now</button>
+        </div>
+        <div class="card price-card">
+          <div class="badge">Enterprise</div>
+          <div style="font-size: 3rem; font-weight: 800; margin: 20px 0;">Custom</div>
+          <p style="margin-bottom: 32px;">For universities & bootcamps.</p>
+          <ul style="list-style: none; display: grid; gap: 12px; margin-bottom: 40px; font-size: 0.9rem;">
+            <li>✨ Team Performance Analytics</li>
+            <li>✨ Bulk Student Onboarding</li>
+            <li>✨ Custom API Integration</li>
+          </ul>
+          <button class="btn btn-secondary" style="width: 100%;">Contact Sales</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section id="faq" class="container" style="max-width: 900px; margin-top: 120px;">
+      <h2 style="text-align: center; margin-bottom: 80px;">Frequently Asked Questions</h2>
+      
+      <div class="faq-item">
+        <h4>How accurate is the ML matching? <span>+</span></h4>
+        <div class="faq-answer"><div style="padding-top: 24px;">Our proprietary matching algorithm uses high-dimensional vector embeddings to analyze your skills. It currently maintains a 94% correlation with real-world hiring manager feedback across 50,000+ benchmarked profiles.</div></div>
+      </div>
+
+      <div class="faq-item">
+        <h4>Can I upload a PDF resume? <span>+</span></h4>
+        <div class="faq-answer"><div style="padding-top: 24px;">Yes! Pro users can upload PDF, DOCX, and TXT files. Our AI automatically parses your experience, projects, and skills to build your digital skill vector instantly.</div></div>
+      </div>
+
+      <div class="faq-item">
+        <h4>Does SkillMap integrate with LinkedIn? <span>+</span></h4>
+        <div class="faq-answer"><div style="padding-top: 24px;">Absolutely. You can import your LinkedIn profile with one click to seed your initial skill map. We also provide a "Profile Optimizer" that suggests specific keywords to add to your LinkedIn for maximum visibility.</div></div>
+      </div>
+
+      <div class="faq-item">
+        <h4>Is there a student discount available? <span>+</span></h4>
+        <div class="faq-answer"><div style="padding-top: 24px;">We offer a 50% lifetime discount for students with a valid .edu email address. We believe career intelligence should be accessible to everyone starting their journey.</div></div>
+      </div>
+
+      <div class="faq-item">
+        <h4>How often is the career database updated? <span>+</span></h4>
+        <div class="faq-answer"><div style="padding-top: 24px;">Our data team updates role requirements weekly by scraping thousands of new job postings from Top-tier tech companies to ensure your roadmap reflects current market demands.</div></div>
+      </div>
+
+      <div class="faq-item">
+        <h4>Can I export my roadmap to Notion? <span>+</span></h4>
+        <div class="faq-answer"><div style="padding-top: 24px;">Yes, SkillMap supports direct export to Notion, Trello, and PDF. You can take your personalized roadmap wherever you track your learning progress.</div></div>
+      </div>
+
+      <div class="faq-item">
+        <h4>Is my data secure and private? <span>+</span></h4>
+        <div class="faq-answer"><div style="padding-top: 24px;">Your privacy is our priority. We use AES-256 encryption for all data at rest and do not share your personal information or resume content with third-party recruiters without your explicit consent.</div></div>
+      </div>
+    </section>
+
+    <footer class="container">
+      <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 80px;">
+        <div style="font-weight: 900; font-size: 1.2rem;">SKILLMAP AI</div>
+        <div style="display: flex; gap: 48px; color: var(--text-secondary); font-size: 0.9rem;">
+          <span>Twitter</span> <span>GitHub</span> <span>LinkedIn</span> <span>Terms</span>
+        </div>
+        <div style="color: var(--text-secondary); font-size: 0.9rem;">© 2026 SkillMap AI. Built for the modern builder.</div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- ============================================================
+       APPLICATION VIEW
+       ============================================================ -->
+  <div id="app-view" class="app-layout">
+    <nav class="sidebar">
+      <div style="padding: 32px; font-weight: 900; font-size: 1.5rem; letter-spacing: -1px; background: var(--accent-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">SKILLMAP AI</div>
+      <div style="flex: 1; padding-top: 20px;">
+        <a href="#" class="nav-link active" onclick="switchPage('career')">🎯 Career Match</a>
+        <a href="#" class="nav-link" onclick="switchPage('job')">📄 Job Match</a>
+        <a href="#" class="nav-link" onclick="switchPage('insights')">📈 Insights</a>
+        <a href="#" class="nav-link" onclick="switchPage('ml')">⚙️ ML Pipeline</a>
+      </div>
+      <div style="padding: 20px; border-top: 1px solid var(--border-subtle);">
+        <div class="nav-link" style="opacity: 0.6; cursor: pointer;" onclick="location.reload()">🏠 Back to Landing</div>
+      </div>
+    </nav>
+    <main class="app-main">
+      <div id="page-career" class="page-view">
+        <h1>Target Your Future</h1>
+        <div class="card" style="margin-top: 40px;">
+          <h3>What are your skills?</h3>
+          <textarea id="careerInput" rows="5" style="margin-top: 20px;" placeholder="Example: I'm a student with experience in Python..."></textarea>
+          <div style="margin-top: 24px; text-align: right;"><button class="btn btn-primary" onclick="runCareerAnalysis()">Analyze Profile</button></div>
+        </div>
+        <div id="careerResults" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px; margin-top: 40px;"></div>
+      </div>
+      <!-- Other pages hidden by default -->
+      <div id="page-job" class="page-view" style="display: none;"><h1>Job Match</h1></div>
+      <div id="page-insights" class="page-view" style="display: none;"><h1>Insights</h1></div>
+      <div id="page-ml" class="page-view" style="display: none;"><h1>ML Pipeline</h1></div>
+    </main>
+  </div>
+
+  <!-- ============================================================
+       SCRIPTS
+       ============================================================ -->
+  <script>
+    function initFAQ() {
+      const faqItems = document.querySelectorAll('.faq-item');
+      faqItems.forEach(item => {
+        const answer = item.querySelector('.faq-answer');
+        const icon = item.querySelector('h4 span');
+        let isOpen = false;
+
+        item.addEventListener('click', () => {
+          isOpen = !isOpen;
+          if (isOpen) {
+            gsap.to(answer, { height: 'auto', opacity: 1, duration: 0.5, ease: "power2.inOut" });
+            gsap.to(icon, { rotation: 45, color: "#7c3aed", duration: 0.4, ease: "back.out(2)" });
+          } else {
+            gsap.to(answer, { height: 0, opacity: 0, duration: 0.4, ease: "power2.inOut" });
+            gsap.to(icon, { rotation: 0, color: "white", duration: 0.4, ease: "power2.inOut" });
+          }
+        });
+      });
+    }
+
+    function initCardSwap() {
+      const cards = Array.from(document.querySelectorAll('.swap-card'));
+      const cardDistance = 30;
+      const verticalDistance = 40;
+      const skewAmount = 6;
+      const delay = 5000;
+      const total = cards.length;
+      
+      let order = Array.from({ length: total }, (_, i) => i);
+
+      const makeSlot = (i, distX, distY, total) => ({
+        x: i * distX,
+        y: -i * distY,
+        z: -i * distX * 1.5,
+        zIndex: total - i
+      });
+
+      const placeNow = (el, slot, skew) =>
+        gsap.set(el, {
+          x: slot.x,
+          y: slot.y,
+          z: slot.z,
+          xPercent: -50,
+          yPercent: -50,
+          skewY: skew,
+          transformOrigin: 'center center',
+          zIndex: slot.zIndex,
+          force3D: true
+        });
+
+      // Initial placement
+      cards.forEach((card, i) => {
+        placeNow(card, makeSlot(i, cardDistance, verticalDistance, total), skewAmount);
+        gsap.set(card, { opacity: 1 });
+      });
+
+      function swap() {
+        if (order.length < 2) return;
+
+        const [front, ...rest] = order;
+        const elFront = cards[front];
+        const tl = gsap.timeline();
+
+        // 1. Drop front card
+        tl.to(elFront, {
+          y: '+=500',
+          duration: 2,
+          ease: 'elastic.out(0.6,0.9)'
+        });
+
+        // 2. Promote others
+        tl.addLabel('promote', '-=1.8');
+        rest.forEach((idx, i) => {
+          const el = cards[idx];
+          const slot = makeSlot(i, cardDistance, verticalDistance, total);
+          tl.set(el, { zIndex: slot.zIndex }, 'promote');
+          tl.to(el, {
+            x: slot.x,
+            y: slot.y,
+            z: slot.z,
+            duration: 2,
+            ease: 'elastic.out(0.6,0.9)'
+          }, `promote+=${i * 0.15}`);
+        });
+
+        // 3. Return to back
+        const backSlot = makeSlot(total - 1, cardDistance, verticalDistance, total);
+        tl.addLabel('return', 'promote+=0.1');
+        tl.call(() => {
+          gsap.set(elFront, { zIndex: backSlot.zIndex });
+        }, undefined, 'return');
+
+        tl.to(elFront, {
+          x: backSlot.x,
+          y: backSlot.y,
+          z: backSlot.z,
+          duration: 2,
+          ease: 'elastic.out(0.6,0.9)'
+        }, 'return');
+
+        tl.call(() => {
+          order = [...rest, front];
+        });
+      }
+
+      setInterval(swap, delay);
+    }
+
+    /* --- DATA & ML --- */
+    const careerRoles = [
+      { id: "frontend", name: "Frontend Developer", icon: "🎨", skills: { "javascript": 1.0, "react": 0.9, "html": 0.8, "css": 0.8, "typescript": 0.7 } },
+      { id: "backend", name: "Backend Developer", icon: "⚙️", skills: { "node.js": 1.0, "python": 0.9, "sql": 0.9, "postgresql": 0.8 } },
+      { id: "data-sci", name: "Data Scientist", icon: "📊", skills: { "python": 1.0, "machine learning": 1.0, "statistics": 0.9 } },
+      { id: "ai", name: "AI Engineer", icon: "🤖", skills: { "python": 1.0, "pytorch": 0.9, "transformers": 0.9 } }
+    ];
+
+    const MLEngine = {
+      tokenize: (text) => text.toLowerCase().split(/[\s,.]+/).filter(t => t.length > 1),
+      cosineSimilarity: (vecA, vecB) => {
+        let dot = 0, magA = 0, magB = 0;
+        let keys = new Set([...Object.keys(vecA), ...Object.keys(vecB)]);
+        keys.forEach(k => {
+          let a = vecA[k] || 0, b = vecB[k] || 0;
+          dot += a * b; magA += a * a; magB += b * b;
+        });
+        return magA && magB ? dot / (Math.sqrt(magA) * Math.sqrt(magB)) : 0;
+      },
+      analyze: (text) => {
+        let tokens = MLEngine.tokenize(text), userVec = {};
+        tokens.forEach(t => userVec[t] = 1);
+        return careerRoles.map(r => ({ ...r, score: Math.round(MLEngine.cosineSimilarity(userVec, r.skills) * 100) })).sort((a,b) => b.score - a.score);
+      }
+    };
+
+    /* --- UI NAVIGATION --- */
+    function launchApp() { window.location.href = '/app'; }
+    function switchPage(p) {
+      document.querySelectorAll('.page-view').forEach(v => v.style.display = 'none');
+      document.getElementById('page-' + p).style.display = 'block';
+      document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+      event.target.classList.add('active');
+    }
+
+    function runCareerAnalysis() {
+      const results = MLEngine.analyze(document.getElementById('careerInput').value);
+      document.getElementById('careerResults').innerHTML = results.map(r => `
+        <div class="card">
+          <div style="display: flex; justify-content: space-between;"><h3>${r.icon} ${r.name}</h3><span style="color: var(--accent-purple); font-weight: 800;">${r.score}%</span></div>
+          <div style="height: 6px; background: rgba(255,255,255,0.05); border-radius: 3px; margin-top: 16px; overflow: hidden;">
+            <div style="width: ${r.score}%; height: 100%; background: var(--accent-purple);"></div>
+          </div>
+        </div>`).join('');
+    }
+
+    /* --- PILL NAV GSAP PORT --- */
+    function initPillNav() {
+      const pills = document.querySelectorAll('.pill');
+      const logo = document.querySelector('.pill-logo');
+      const logoImg = logo.querySelector('img');
+      const navItems = document.querySelector('.pill-nav-items');
+
+      // 1. Initial Load Animations
+      gsap.from(logo, { scale: 0, duration: 0.6, ease: "power3.out" });
+      gsap.from(navItems, { width: 0, opacity: 0, duration: 0.8, ease: "power3.out", delay: 0.2 });
+
+      // 2. Logo Hover
+      logo.addEventListener('mouseenter', () => {
+        gsap.to(logoImg, { rotate: 360, duration: 0.4, ease: "power2.out" });
+      });
+      logo.addEventListener('mouseleave', () => {
+        gsap.to(logoImg, { rotate: 0, duration: 0.4, ease: "power2.out" });
+      });
+
+      // 3. Pill Hover Logic (Geometric)
+      pills.forEach(pill => {
+        const circle = pill.querySelector('.hover-circle');
+        const label = pill.querySelector('.pill-label');
+        const hoverLabel = pill.querySelector('.pill-label-hover');
+        
+        const updateLayout = () => {
+          const { width: w, height: h } = pill.getBoundingClientRect();
+          if (w === 0 || h === 0) return;
+          const R = ((w * w) / 4 + h * h) / (2 * h);
+          const D = Math.ceil(2 * R) + 2;
+          const delta = Math.ceil(R - Math.sqrt(Math.max(0, R * R - (w * w) / 4))) + 1;
+          const originY = D - delta;
+
+          gsap.set(circle, {
+            width: D, height: D,
+            bottom: -delta, xPercent: -50, scale: pill.classList.contains('active') ? 1 : 0,
+            opacity: pill.classList.contains('active') ? 1 : 0,
+            transformOrigin: `50% ${originY}px`
+          });
+          
+          if (pill.classList.contains('active')) {
+            gsap.set(label, { y: -30, opacity: 0 });
+            gsap.set(hoverLabel, { y: 0, opacity: 1 });
+          } else {
+            gsap.set(label, { y: 0, opacity: 1 });
+            gsap.set(hoverLabel, { y: 40, opacity: 0 });
+          }
+        };
+        
+      // Force immediate layout check
+      updateLayout();
+      requestAnimationFrame(updateLayout);
+      setTimeout(updateLayout, 100);
+      setTimeout(updateLayout, 500);
+
+      pill.addEventListener('mouseenter', () => {
+          pills.forEach(p => {
+            if (p !== pill) {
+              const c = p.querySelector('.hover-circle');
+              const l = p.querySelector('.pill-label');
+              const hl = p.querySelector('.pill-label-hover');
+              gsap.to(c, { scale: 0, opacity: 0, duration: 0.2 });
+              gsap.to(l, { y: 0, opacity: 1, duration: 0.2 });
+              gsap.to(hl, { y: 40, opacity: 0, duration: 0.2 });
+            }
+          });
+          gsap.to(circle, { scale: 1.2, opacity: 1, duration: 0.4, ease: "power3.out" });
+          gsap.to(label, { y: -30, opacity: 0, duration: 0.3, ease: "power3.out" });
+          gsap.to(hoverLabel, { y: 0, opacity: 1, duration: 0.3, ease: "power3.out" });
+        });
+
+        pill.addEventListener('mouseleave', () => {
+          gsap.to(circle, { scale: 0, opacity: 0, duration: 0.3, ease: "power3.in" });
+          gsap.to(label, { y: 0, opacity: 1, duration: 0.3, ease: "power3.out" });
+          gsap.to(hoverLabel, { y: 40, opacity: 0, duration: 0.3, ease: "power3.out" });
+        });
+      });
+
+      const nav = document.querySelector('.pill-nav');
+      nav.addEventListener('mouseleave', () => {
+        const active = document.querySelector('.pill.active');
+        if (active) {
+          const c = active.querySelector('.hover-circle');
+          const l = active.querySelector('.pill-label');
+          const hl = active.querySelector('.pill-label-hover');
+          gsap.to(c, { scale: 1, opacity: 1, duration: 0.4, ease: "power3.out" });
+          gsap.to(l, { y: -30, opacity: 0, duration: 0.3 });
+          gsap.to(hl, { y: 0, opacity: 1, duration: 0.3 });
+        }
+      });
+    }
+
+    /* --- BACKGROUND ENGINE --- */
+    const MAX_COLORS = 8;
+    const frag = `
+    #define MAX_COLORS ${MAX_COLORS}
+    uniform vec2 uCanvas; uniform float uTime; uniform float uSpeed; uniform vec2 uRot;
+    uniform int uColorCount; uniform vec3 uColors[MAX_COLORS]; uniform int uTransparent;
+    uniform float uScale; uniform float uFrequency; uniform float uWarpStrength;
+    uniform vec2 uPointer; uniform float uMouseInfluence; uniform float uParallax;
+    uniform float uNoise; uniform int uIterations; uniform float uIntensity; uniform float uBandWidth;
+    varying vec2 vUv;
+    void main() {
+      float t = uTime * uSpeed; vec2 p = vUv * 2.0 - 1.0; p += uPointer * uParallax * 0.1;
+      vec2 rp = vec2(p.x * uRot.x - p.y * uRot.y, p.x * uRot.y + p.y * uRot.x);
+      vec2 q = vec2(rp.x * (uCanvas.x / uCanvas.y), rp.y);
+      q /= max(uScale, 0.0001); q /= 0.5 + 0.2 * dot(q, q); q += 0.2 * cos(t) - 7.56;
+      vec2 toward = (uPointer - rp); q += toward * uMouseInfluence * 0.2;
+      for (int j = 0; j < 5; j++) { if (j >= uIterations - 1) break; vec2 rr = sin(1.5 * (q.yx * uFrequency) + 2.0 * cos(q * uFrequency)); q += (rr - q) * 0.15; }
+      vec3 col = vec3(0.0); float a = 1.0;
+      if (uColorCount > 0) {
+        vec2 s = q; vec3 sumCol = vec3(0.0); float cover = 0.0;
+        for (int i = 0; i < MAX_COLORS; ++i) {
+          if (i >= uColorCount) break; s -= 0.01; vec2 r = sin(1.5 * (s.yx * uFrequency) + 2.0 * cos(s * uFrequency));
+          float m0 = length(r + sin(5.0 * r.y * uFrequency - 3.0 * t + float(i)) / 4.0);
+          float kBelow = clamp(uWarpStrength, 0.0, 1.0); float kMix = pow(kBelow, 0.3); float gain = 1.0 + max(uWarpStrength - 1.0, 0.0);
+          vec2 disp = (r - s) * kBelow; vec2 warped = s + disp * gain;
+          float m1 = length(warped + sin(5.0 * warped.y * uFrequency - 3.0 * t + float(i)) / 4.0);
+          float m = mix(m0, m1, kMix); float w = 1.0 - exp(-uBandWidth / exp(uBandWidth * m)); sumCol += uColors[i] * w; cover = max(cover, w);
+        }
+        col = clamp(sumCol, 0.0, 1.0); a = uTransparent > 0 ? cover : 1.0;
+      }
+      col *= uIntensity; if (uNoise > 0.0001) { float n = fract(sin(dot(gl_FragCoord.xy + vec2(uTime), vec2(12.9898, 78.233))) * 43758.5453123); col += (n - 0.5) * uNoise; col = clamp(col, 0.0, 1.0); }
+      gl_FragColor = vec4(col * a, a);
+    }
+    `;
+
+    function initThree() {
+      const container = document.querySelector('.color-bends-container');
+      if (!container) return;
+      const scene = new THREE.Scene(); const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+      const renderer = new THREE.WebGLRenderer({ alpha: true }); renderer.setSize(window.innerWidth, window.innerHeight);
+      container.appendChild(renderer.domElement);
+      const toVec3 = h => { const v = [parseInt(h.slice(1,3), 16), parseInt(h.slice(3,5), 16), parseInt(h.slice(5,7), 16)]; return new THREE.Vector3(v[0]/255, v[1]/255, v[2]/255); };
+      const baseColors = ["#ff5c7a", "#8a5cff", "#00ffd1", "#ffcc00"].map(toVec3);
+      const colors = Array.from({ length: MAX_COLORS }, (_, i) => i < baseColors.length ? baseColors[i] : new THREE.Vector3(0,0,0));
+      
+      const material = new THREE.ShaderMaterial({
+        vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position, 1.0); }`,
+        fragmentShader: frag,
+        uniforms: {
+          uCanvas: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }, uTime: { value: 0 }, uSpeed: { value: 0.2 }, uRot: { value: new THREE.Vector2(1, 0) },
+          uColorCount: { value: 4 }, uColors: { value: colors }, uTransparent: { value: 1 }, uScale: { value: 1.0 }, uFrequency: { value: 1.5 },
+          uWarpStrength: { value: 1.2 }, uPointer: { value: new THREE.Vector2(0, 0) }, uMouseInfluence: { value: 1.0 }, uParallax: { value: 0.5 },
+          uNoise: { value: 0.15 }, uIterations: { value: 5 }, uIntensity: { value: 3.5 }, uBandWidth: { value: 6.0 }
+        }, transparent: true
+      });
+      scene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material));
+      
+      window.addEventListener('resize', () => {
+        const w = window.innerWidth, h = window.innerHeight;
+        renderer.setSize(w, h);
+        material.uniforms.uCanvas.value.set(w, h);
+      });
+
+      let m = new THREE.Vector2(); window.addEventListener('pointermove', (e) => m.set((e.clientX/window.innerWidth)*2-1, -(e.clientY/window.innerHeight)*2+1));
+      function animate(t) { 
+        material.uniforms.uTime.value = t/1000; 
+        material.uniforms.uPointer.value.lerp(m, 0.05); 
+        renderer.render(scene, camera); 
+        requestAnimationFrame(animate); 
+      }
+      requestAnimationFrame(animate);
+      console.log("SkillMap: Background Engine Active");
+    }
+
+    document.addEventListener('DOMContentLoaded', () => { 
+      console.log("SkillMap: Initializing Engine...");
+      initThree(); 
+      initPillNav(); 
+      initFAQ();
+      initCardSwap();
+    });
+  </script>
+</body>
+</html>
