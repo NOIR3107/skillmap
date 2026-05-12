@@ -3,9 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import MatchRing from '../components/MatchRing';
 import AnimatedNumber from '../components/AnimatedNumber';
 import { MLEngine } from '../../ml-engine.js';
-import { extractTextFromPDF } from '../utils/pdfParser';
+import { extractTextFromFile } from '../utils/pdfParser';
 import { fetchTextFromUrl } from '../utils/urlScraper';
-import { Upload, Link as LinkIcon, Loader2, Sparkles, FileText, Zap, ChevronRight, RefreshCw, Crosshair, Target } from 'lucide-react';
+import { Upload, Link as LinkIcon, Loader2, Sparkles, FileText, Zap, ChevronRight, RefreshCw, Crosshair, Target, AlertCircle } from 'lucide-react';
 
 export default function JobMatch() {
   const [resume, setResume]         = useState('');
@@ -16,6 +16,8 @@ export default function JobMatch() {
   const [isFetching, setIsFetching] = useState(false);
   const [result, setResult]         = useState(null);
   const [activeTab, setActiveTab]   = useState('matched');
+  const [uploadError, setUploadError] = useState('');
+  const [isDragging, setIsDragging] = useState(false);
   const fileRef = useRef(null);
 
   const handleCompare = () => {
@@ -29,13 +31,39 @@ export default function JobMatch() {
 
   const handleClear = () => { setResume(''); setJd(''); setJobUrl(''); setResult(null); };
 
-  const handleFile = async (e) => {
-    const file = e.target.files[0];
-    if (!file || file.type !== 'application/pdf') return;
+  const handleFile = async (file) => {
+    console.log('File selected:', file?.name, file?.type);
+    if (!file) return;
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (!['pdf', 'txt', 'docx'].includes(ext)) {
+      console.warn('Unsupported extension:', ext);
+      setUploadError('Only PDF, TXT, or DOCX files are supported.');
+      setTimeout(() => setUploadError(''), 4000);
+      return;
+    }
     setIsParsing(true);
-    try { setResume(await extractTextFromPDF(file)); }
-    catch { alert('Failed to parse PDF.'); }
-    finally { setIsParsing(false); if (fileRef.current) fileRef.current.value = ''; }
+    setUploadError('');
+    try {
+      console.log('Parsing file...');
+      const text = await extractTextFromFile(file);
+      console.log('Parse successful, length:', text.length);
+      setResume(text);
+    } catch (err) {
+      console.error('File parse error:', err);
+      setUploadError('Could not read file. Try copy-pasting the text instead.');
+      setTimeout(() => setUploadError(''), 5000);
+    } finally {
+      setIsParsing(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  };
+
+  const handleFileInput = (e) => handleFile(e.target.files[0]);
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    handleFile(e.dataTransfer.files[0]);
   };
 
   const handleUrl = async () => {
@@ -87,20 +115,52 @@ export default function JobMatch() {
         <div className={`${result ? 'col-span-5' : 'grid grid-cols-2 gap-3'} flex flex-col gap-3`}>
           <div className={`${result ? '' : 'contents'}`}>
             {/* Resume input */}
-            <div className="glass-card-premium flex flex-col border-white/5 min-h-0" style={result ? { flex: 1 } : {}}>
+            <div
+              className={`glass-card-premium flex flex-col border-white/5 min-h-0 transition-all ${isDragging ? 'border-secondary/50 bg-secondary/5' : ''}`}
+              style={result ? { flex: 1 } : {}}
+              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+              onDragLeave={() => setIsDragging(false)}
+              onDrop={handleDrop}
+            >
               <div className="flex items-center justify-between mb-2">
                 <h2 className="font-black text-[9px] uppercase tracking-[0.2em] flex items-center gap-1.5">
                   <FileText className="w-3 h-3 text-secondary" /> Resume
                 </h2>
-                <input type="file" accept="application/pdf" className="hidden" ref={fileRef} onChange={handleFile} />
-                <button onClick={() => fileRef.current?.click()}
-                  className="text-[8px] font-black text-secondary bg-secondary/10 px-2 py-0.5 rounded-md flex items-center gap-1 hover:bg-secondary/20 transition-colors">
-                  {isParsing ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <Upload className="w-2.5 h-2.5" />} PDF
-                </button>
+                <div className="flex items-center gap-1.5">
+                  {uploadError && (
+                    <span className="text-[8px] text-danger font-bold flex items-center gap-1">
+                      <AlertCircle className="w-2.5 h-2.5" /> {uploadError}
+                    </span>
+                  )}
+                  <input type="file" accept=".pdf,.txt,.docx" className="hidden" ref={fileRef} onChange={handleFileInput} />
+                  <button
+                    onClick={() => fileRef.current?.click()}
+                    className="text-[8px] font-black text-secondary bg-secondary/10 px-2 py-0.5 rounded-md flex items-center gap-1 hover:bg-secondary/20 transition-colors border border-secondary/20"
+                    title="Upload PDF, TXT, or DOCX"
+                  >
+                    {isParsing ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <Upload className="w-2.5 h-2.5" />}
+                    {isParsing ? 'Reading...' : 'UPLOAD FILE'}
+                  </button>
+                  {resume && (
+                    <button onClick={() => setResume('')} className="text-[8px] font-black text-white/20 hover:text-danger px-1">✕</button>
+                  )}
+                </div>
               </div>
+              {!resume && !isParsing && (
+                <div
+                  onClick={() => fileRef.current?.click()}
+                  className={`flex flex-col items-center justify-center gap-2 mb-2 py-4 rounded-xl border border-dashed cursor-pointer transition-all ${
+                    isDragging ? 'border-secondary/60 bg-secondary/5' : 'border-white/8 hover:border-secondary/30 hover:bg-white/[0.01]'
+                  }`}
+                >
+                  <Upload className="w-5 h-5 text-white/20" />
+                  <div className="text-[9px] font-black text-white/25 uppercase tracking-widest">Drop file or click to upload</div>
+                  <div className="text-[8px] text-white/15 font-bold">PDF · TXT · DOCX</div>
+                </div>
+              )}
               <textarea value={resume} onChange={e => setResume(e.target.value)}
                 className="neo-input flex-1 min-h-0 !p-3 text-[11px]"
-                placeholder="Paste your resume here..." />
+                placeholder="Or paste your resume text here..." />
             </div>
 
             {/* JD input */}

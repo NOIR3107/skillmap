@@ -258,34 +258,10 @@ export default function CareerMatch({ lastAnalysis, setLastAnalysis }) {
             </div>
           )}
 
-          {!lastAnalysis && !analyzing && (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center glass-card-premium !p-10 max-w-sm border-white/5 bg-white/[0.01]">
-                <div className="text-4xl mb-5 opacity-30">🛰️</div>
-                <h3 className="text-xl font-black mb-2 uppercase italic">Awaiting <span className="text-primary">Intelligence</span></h3>
-                <p className="text-white/25 text-xs font-medium leading-relaxed">Enter skills and analyze. Click any result card to see your full compatibility breakdown and learning roadmap.</p>
-              </div>
-            </div>
-          )}
+
         </div>
 
-        {/* Center empty state if no analysis */}
-        {!lastAnalysis && !analyzing && (
-          <div className="col-span-7 flex items-center justify-center">
-            <div className="text-center glass-card-premium !p-12 max-w-md border-white/5 bg-white/[0.01]">
-              <div className="text-5xl mb-6 opacity-25">🛰️</div>
-              <h3 className="text-2xl font-black mb-3 uppercase italic">Awaiting <span className="text-primary">Intelligence</span></h3>
-              <p className="text-white/25 text-sm font-medium leading-relaxed mb-6">
-                Enter your skills on the left and click Analyze. Click any result card to see full compatibility and a learning roadmap.
-              </p>
-              <div className="flex items-center justify-center gap-8">
-                <div className="text-center"><div className="text-xl font-black mb-1">10</div><div className="text-[8px] font-black text-white/20 uppercase tracking-widest">Career Paths</div></div>
-                <div className="w-px h-8 bg-white/5" />
-                <div className="text-center"><div className="text-xl font-black mb-1">72+</div><div className="text-[8px] font-black text-white/20 uppercase tracking-widest">Skills Tracked</div></div>
-              </div>
-            </div>
-          </div>
-        )}
+
       </div>
     </div>
   );
