@@ -40,7 +40,13 @@ export default function SkillInsights({ lastAnalysis }) {
           <div className="text-center glass-card-premium !p-10 max-w-sm border-white/5">
             <div className="text-4xl mb-4 opacity-30">📉</div>
             <h3 className="text-xl font-black mb-2 uppercase italic">No <span className="text-primary">Signal</span></h3>
-            <p className="text-white/25 text-xs font-medium leading-relaxed">Run a Career Match analysis first to populate your technical DNA profile.</p>
+            <p className="text-white/25 text-xs font-medium leading-relaxed mb-6">Run a Career Match analysis first to populate your technical DNA profile.</p>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="w-full py-2.5 rounded-xl bg-primary/20 hover:bg-primary/30 text-primary text-[9px] font-black uppercase tracking-[0.2em] transition-all border border-primary/20"
+            >
+              Click Match Engine to Start
+            </button>
           </div>
         </div>
       </div>

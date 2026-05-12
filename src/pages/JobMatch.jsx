@@ -31,6 +31,24 @@ export default function JobMatch() {
 
   const handleClear = () => { setResume(''); setJd(''); setJobUrl(''); setResult(null); };
 
+  const handleSample = () => {
+    setResume(`Senior Full Stack Developer with 5+ years experience. 
+Expertise in React, Node.js, and TypeScript. 
+Extensive work with AWS (S3, Lambda, EC2), PostgreSQL, and Redis.
+Built scalable microservices and led a team of 4 developers.
+Strong focus on CI/CD (GitHub Actions), Docker, and Kubernetes.
+Familiar with Python, Django, and Machine Learning concepts.`);
+    setJd(`We are looking for a Senior Software Engineer to join our core team.
+Requirements:
+- 5+ years of professional software development experience.
+- Strong proficiency in React.js and modern JavaScript (ES6+).
+- Experience with backend technologies like Node.js or Python.
+- Working knowledge of cloud platforms (AWS preferred).
+- Experience with SQL databases (PostgreSQL) and NoSQL (Redis).
+- Passion for building scalable, high-performance systems.`);
+    setResult(null);
+  };
+
   const handleFile = async (file) => {
     console.log('File selected:', file?.name, file?.type);
     if (!file) return;
@@ -93,6 +111,9 @@ export default function JobMatch() {
           </div>
         </div>
         <div className="flex gap-2">
+          <button onClick={handleSample} className="btn-primary !py-2 !px-4 !text-xs bg-white/5 border-white/10 hover:bg-white/10 flex items-center gap-1.5 !text-white/60 hover:!text-white">
+            <Sparkles className="w-3.5 h-3.5 text-primary" /> Try Sample
+          </button>
           <button onClick={handleClear} className="btn-secondary !py-2 !px-4 !text-xs border-white/5 flex items-center gap-1.5">
             <RefreshCw className="w-3.5 h-3.5" /> Reset
           </button>
@@ -170,12 +191,20 @@ export default function JobMatch() {
                   <LinkIcon className="w-3 h-3 text-primary" /> Target JD
                 </h2>
                 <div className="flex gap-1">
+                  {!jobUrl && (
+                    <button 
+                      onClick={() => setJobUrl('https://careers.google.com/jobs/results/')}
+                      className="text-[7px] font-black text-white/20 hover:text-primary transition-colors px-1"
+                    >
+                      Try URL
+                    </button>
+                  )}
                   <input type="url" value={jobUrl} onChange={e => setJobUrl(e.target.value)}
                     className="bg-white/5 border border-white/8 rounded-lg px-2 py-0.5 text-[8px] text-white focus:border-primary/40 outline-none w-24"
                     placeholder="Import URL..." />
                   <button onClick={handleUrl}
-                    className="text-[8px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded-md flex items-center hover:bg-primary/20 transition-colors">
-                    {isFetching ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : 'Fetch'}
+                    className="text-[8px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded-md flex items-center hover:bg-primary/20 transition-colors border border-primary/20">
+                    {isFetching ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : 'FETCH'}
                   </button>
                 </div>
               </div>
@@ -186,11 +215,24 @@ export default function JobMatch() {
           </div>
 
           <button
-            className="btn-primary w-full !py-3 group flex-shrink-0"
+            className={`btn-primary w-full !py-3 group flex-shrink-0 transition-all duration-500 ${
+              !resume.trim() || !jd.trim() ? 'opacity-50 grayscale' : 'hover:shadow-[0_0_25px_rgba(6,182,212,0.4)] hover:scale-[1.01]'
+            }`}
             onClick={handleCompare}
             disabled={analyzing || !resume.trim() || !jd.trim()}
-            style={{ background: 'linear-gradient(135deg, #06b6d4, #7c3aed)' }}
+            style={{ 
+              background: 'linear-gradient(135deg, #06b6d4, #7c3aed)',
+              boxShadow: !resume.trim() || !jd.trim() ? 'none' : '0 4px 15px rgba(0,0,0,0.3)'
+            }}
           >
+            {(!resume.trim() || !jd.trim()) === false && !analyzing && (
+              <motion.div
+                layoutId="btnGlow"
+                className="absolute inset-0 bg-white/10 rounded-xl"
+                animate={{ opacity: [0, 0.2, 0] }}
+                transition={{ repeat: Infinity, duration: 2 }}
+              />
+            )}
             <span className="flex items-center gap-2 font-black uppercase tracking-widest text-xs">
               {analyzing ? 'Quantifying...' : 'Execute Semantic Sync'}
               <ChevronRight className={`w-4 h-4 ${analyzing ? 'animate-spin' : 'group-hover:translate-x-0.5 transition-transform'}`} />
