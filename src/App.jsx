@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Target, FileText, BarChart2, ChevronLeft, LogOut, Settings, User, LogIn, ChevronUp, Shield, Bell, Moon, ExternalLink } from 'lucide-react';
+import { Target, FileText, BarChart2, ChevronLeft, LogOut, Settings, User, LogIn, ChevronUp, Shield, Bell, Moon, ExternalLink, Home } from 'lucide-react';
 import CareerMatch from './pages/CareerMatch';
 import JobMatch from './pages/JobMatch';
 import SkillInsights from './pages/SkillInsights';
@@ -189,18 +189,18 @@ function App() {
 
         {/* Logo */}
         <div className="p-5 pb-4 relative z-10">
-          <div className="flex items-center gap-3 mb-7">
+          <a href="/landing.html" className="flex items-center gap-3 mb-7 group" title="Back to Home">
             <motion.div whileHover={{ scale: 1.08, rotate: 5 }} whileTap={{ scale: 0.92 }} className="relative flex-shrink-0">
               <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center text-xl shadow-lg shadow-primary/30">🧠</div>
               <div className="absolute -inset-1.5 bg-gradient-to-br from-primary to-secondary rounded-xl blur-xl opacity-20" />
             </motion.div>
             <div>
-              <h1 className="font-black text-base tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent leading-none">
+              <h1 className="font-black text-base tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent leading-none group-hover:from-primary group-hover:to-secondary transition-all">
                 SkillMap <span className="text-primary italic">AI</span>
               </h1>
               <div className="text-[8px] font-black tracking-[0.25em] text-primary/50 uppercase mt-0.5">Neural Interface</div>
             </div>
-          </div>
+          </a>
 
           {/* Nav */}
           <div className="text-[8px] font-black text-white/20 uppercase tracking-[0.3em] mb-3 px-2">System Core</div>
@@ -285,14 +285,14 @@ function App() {
             </motion.button>
           </div>
 
-          {/* Exit */}
+          {/* Back to Landing */}
           <motion.a
-            href="index.html"
+            href="/landing.html"
             whileHover={{ x: -3 }}
             className="flex items-center justify-center gap-2 py-3 rounded-xl text-[9px] font-black text-white/20 hover:text-white/60 transition-all group tracking-[0.25em] uppercase w-full mt-1"
           >
-            <ChevronLeft className="w-3.5 h-3.5 text-primary group-hover:-translate-x-0.5 transition-transform" />
-            Exit Sync
+            <Home className="w-3.5 h-3.5 text-primary group-hover:text-primary/80 transition-colors" />
+            Back to Home
           </motion.a>
         </div>
       </motion.aside>
