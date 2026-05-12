@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { resolve } from 'path'
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
   server: {
@@ -10,7 +10,10 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
-      input: 'index.html'
+      input: {
+        main:    resolve(__dirname, 'index.html'),
+        landing: resolve(__dirname, 'landing.html'),
+      }
     }
   }
 })

@@ -1,0 +1,29 @@
+[build]
+  command   = "npm run build"
+  publish   = "dist"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+# Landing page is the root
+[[redirects]]
+  from   = "/"
+  to     = "/landing.html"
+  status = 200
+
+# React dashboard accessible at /app
+[[redirects]]
+  from   = "/app"
+  to     = "/index.html"
+  status = 200
+
+[[redirects]]
+  from   = "/app/*"
+  to     = "/index.html"
+  status = 200
+
+# skillmap-ai path also loads the React app
+[[redirects]]
+  from   = "/skillmap-ai"
+  to     = "/index.html"
+  status = 200
